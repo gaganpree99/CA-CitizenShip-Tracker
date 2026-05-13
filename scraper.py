@@ -35,7 +35,11 @@ async def get_current_status():
 
         try:
             logging.info("Navigating to IRCC tracker login page...")
-            await page.goto("https://tracker-suivi.apps.cic.gc.ca/en/login", wait_until="networkidle")
+            await page.goto("https://tracker-suivi.apps.cic.gc.ca/en/login", wait_until="networkidle", timeout=60000)
+
+            # Wait for the app to bootstrap
+            logging.info("Waiting for app to bootstrap...")
+            await page.wait_for_selector('input[name="uci"], label:has-text("Unique Client Identifier")', timeout=60000)
 
             logging.info("Entering credentials...")
             # Use more specific selectors to avoid ambiguity
@@ -240,14 +244,21 @@ async def send_notification(message):
         try:
             import httpx
             url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+            # Ensure message is not empty and has valid format
+            if not message:
+                message = "Status check completed (no changes)."
+                
             payload = {
                 "chat_id": TELEGRAM_CHAT_ID,
-                "text": f"🇨🇦 IRCC Tracker Update:\n\n{message}",
+                "text": f"<b>🇨🇦 IRCC Tracker Update:</b>\n\n{message}",
                 "parse_mode": "HTML"
             }
             async with httpx.AsyncClient() as client:
-                await client.post(url, json=payload)
-            logging.info("Notification sent via Telegram.")
+                response = await client.post(url, json=payload)
+                if response.status_code != 200:
+                    logging.error(f"Telegram API error: {response.status_code} - {response.text}")
+                else:
+                    logging.info("Notification sent via Telegram.")
         except Exception as e:
             logging.error(f"Failed to send Telegram notification: {e}")
     else:
@@ -273,12 +284,58 @@ async def main():
             for section, status in new_sections.items():
                 if old_sections.get(section) != status:
                     changes.append(f"<b>{section}:</b> {old_sections.get(section, 'N/A')} ➡️ {status}")
+        # Map statuses to emojis
+        status_icons = {
+            "Completed": "✅",
+            "In progress": "⏳",
+            "Not started": "📋",
+            "Unknown": "❓"
+        }
+
+        if old_status:
+            changes.append("<b>STATUS UPDATE DETECTED</b>\n")
+            if old_status.get("overall_status") != new_status.get("overall_status"):
+                changes.append(f"<b>Overall:</b> {old_status.get('overall_status')} ➡️ <b>{new_status.get('overall_status')}</b>")
+            
+            old_sections = old_status.get("sections", {})
+            new_sections = new_status.get("sections", {})
+            section_changes = []
+            for section, status in new_sections.items():
+                if old_sections.get(section) != status:
+                    section_changes.append(f"• <b>{section}:</b> {old_sections.get(section, 'N/A')} ➡️ <b>{status}</b>")
+            
+            if section_changes:
+                changes.append("\n".join(section_changes))
+            
+            changes.append(f"\n<b>Last Updated:</b> {new_status.get('last_updated')}")
         else:
-            changes.append(f"Initial status captured. Overall: {new_status.get('overall_status')}")
+            # Initial capture - simplified
+            changes.append("🇨🇦 <b>CITIZENSHIP TRACKER</b>\n")
+            changes.append(f"<b>Overall Status:</b> {new_status.get('overall_status')}")
+            changes.append(f"<b>Last Updated:</b> {new_status.get('last_updated')}\n")
+            
+            changes.append("<b>Current Progress:</b>")
+            for section, status in new_status.get("sections", {}).items():
+                changes.append(f"• {section}: <b>{status}</b>")
+            
+            if new_status.get("activity"):
+                changes.append(f"\n<b>Recent History:</b>")
+                # Show top 3 most recent activities
+                for activity in new_status.get("activity", [])[:3]:
+                    parts = activity.split("]", 1)
+                    if len(parts) > 1:
+                        date_part = parts[0].replace("[", "").strip()
+                        desc_part = parts[1].split(":", 1)
+                        title = desc_part[0].strip() if len(desc_part) > 1 else "Update"
+                        changes.append(f"• {date_part}: <b>{title}</b>")
+                    else:
+                        changes.append(f"• {activity[:50]}...")
 
         if compare_statuses(old_status, new_status):
             save_status(new_status)
-            await send_notification("\n".join(changes))
+            # Use a slightly different header for the actual notification
+            final_message = "\n".join(changes)
+            await send_notification(final_message)
             logging.info("Status updated and saved.")
     else:
         logging.error("Failed to retrieve current status.")

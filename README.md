@@ -1,56 +1,70 @@
-# 🇨🇦 IRCC Citizenship Status Tracker
+# 🇨🇦 Canadian Citizenship Status Tracker
 
-An automated tool to monitor changes in your Canadian citizenship application status and get notified immediately via Telegram.
+A robust, automated tool to monitor your Canadian citizenship application progress. Never refresh the IRCC portal again—get notified the second your status changes.
 
-## ✨ Features
+## ✨ Why use this?
 
-- **Automated Hourly Checks:** Uses GitHub Actions to check your status every hour, 24/7.
-- **Deep Status Tracking:** Monitors overall status, individual section progress (Background, Test, Presence, etc.), and "Last Updated" dates.
-- **Activity History:** Automatically captures and tracks new entries in your application history.
-- **Instant Notifications:** Get notified on your phone via Telegram as soon as a change is detected.
-- **Privacy First:** Designed to run in a private repository using GitHub Secrets to keep your credentials safe.
+- **Real-time Alerts:** Get a Telegram message the moment a section (like Background Check or Physical Presence) is updated.
+- **Hourly Monitoring:** Automatically checks your status 24 times a day using GitHub Actions.
+- **Historical Tracking:** Keeps a log of your "Recent Activity" and captures status updates as they happen.
+- **Clean Aesthetic:** Simple, easy-to-read notifications delivered straight to your phone.
+- **Secure:** Designed to run in a private repository using GitHub Secrets to protect your UCI and Password.
 
-## 🚀 Setup Instructions
+---
 
-### 1. Prerequisites
-- A **private** GitHub repository to host the code.
-- Your IRCC Tracker credentials (UCI and Password).
+## 🚀 Step-by-Step Setup Guide
 
-### 2. Telegram Configuration (Optional but Recommended)
-To receive mobile notifications:
-1.  **Create a Bot:** Message [@BotFather](https://t.me/botfather) on Telegram, send `/newbot`, and save the **API Token**.
-2.  **Get your Chat ID:** Message [@userinfobot](https://t.me/userinfobot) to get your unique **ID**.
+### 1. Repository Setup
+1.  **Create a New Private Repository:** Go to [GitHub](https://github.com/new) and create a new **Private** repository.
+2.  **Upload the Code:** Upload `scraper.py`, `requirements.txt`, and the `.github/` folder to your new repository.
+
+### 2. Configure Telegram Notifications
+Get alerts on your phone by creating a simple Telegram bot:
+1.  **Create the Bot:** Search for [@BotFather](https://t.me/botfather) on Telegram and send `/newbot`. Follow the steps to get your **API Token**.
+2.  **Get your Chat ID:** Search for [@userinfobot](https://t.me/userinfobot) and send it any message to get your unique **ID**.
 3.  **Start the Bot:** Open a chat with your new bot and click **Start**.
 
-### 3. GitHub Actions Setup
-1.  Push this project to your **private** GitHub repository.
-2.  In your repository, go to **Settings > Secrets and variables > Actions**.
-3.  Add the following **Repository secrets**:
-    - `UCI`: Your 8 or 10-digit UCI.
-    - `PASSWORD`: Your IRCC tracker password.
-    - `APP_NUMBER`: (Optional) Your application number.
-    - `TELEGRAM_TOKEN`: (Optional) Your Telegram bot token.
-    - `TELEGRAM_CHAT_ID`: (Optional) Your Telegram chat ID.
+### 3. Add Your Credentials (GitHub Secrets)
+To keep your data safe, we use GitHub Secrets instead of hardcoding your password:
+1.  In your GitHub repository, go to **Settings > Secrets and variables > Actions**.
+2.  Add the following **Repository secrets**:
+    - `UCI`: Your 8 or 10-digit Unique Client Identifier.
+    - `PASSWORD`: Your IRCC Tracker password.
+    - `TELEGRAM_TOKEN`: The API Token from BotFather.
+    - `TELEGRAM_CHAT_ID`: The ID from userinfobot.
 
-### 4. Local Development (Optional)
-If you want to run the tracker on your own machine:
-1.  Install dependencies:
+### 4. Enable the Automation
+The tracker is set to run **every hour** automatically.
+- To check if it's working, go to the **Actions** tab in your repository.
+- You can manually trigger a run by selecting the "IRCC Status Check" workflow and clicking **Run workflow**.
+
+---
+
+## 🛠 Local Development
+If you prefer to run the script on your own computer:
+
+1.  **Install Python Dependencies:**
     ```bash
     pip install -r requirements.txt
     playwright install chromium
     ```
-2.  Create a `.env` file with your credentials (see `.env.example`).
-3.  Run the scraper:
-    ```bash
-    python scraper.py
+2.  **Configure Environment:** Create a `.env` file in the project root:
+    ```env
+    UCI=your_uci
+    PASSWORD=your_password
+    TELEGRAM_TOKEN=your_bot_token
+    TELEGRAM_CHAT_ID=your_chat_id
     ```
+3.  **Run:** `python scraper.py`
 
-## 📊 How it Works
-1.  The GitHub Action wakes up every hour.
-2.  It logs into the IRCC portal using Playwright Stealth.
-3.  It compares the current dashboard data with the previous state stored in `status.json`.
-4.  If a change is found (e.g., a section moves from "In progress" to "Completed"), it sends a Telegram message.
-5.  It commits the updated `status.json` back to your repository.
+---
 
-## ⚠️ Disclaimer
-This tool is for personal use only. Ensure you comply with IRCC's Terms of Use. Frequent automated access to government portals may result in temporary IP blocks or account restrictions. Use at your own risk.
+## 📝 Important Notes & Troubleshooting
+- **Maintenance Windows:** IRCC often performs maintenance on weekends (usually Saturday night/Sunday morning). The tracker may fail during these times; this is normal.
+- **Bot Permissions:** If you aren't receiving messages, make sure you have clicked **"Start"** in your chat with the bot.
+- **Security:** Always keep your repository **Private**. Your UCI and Password are sensitive information.
+
+---
+
+## 🤝 Disclaimer
+This project is an independent tool and is not affiliated with Immigration, Refugees and Citizenship Canada (IRCC). Use responsibly and in accordance with government terms of service.
