@@ -39,11 +39,19 @@ async def get_current_status():
 
             # Wait for the app to bootstrap
             logging.info("Waiting for app to bootstrap...")
-            await page.wait_for_selector('input[name="uci"], label:has-text("Unique Client Identifier")', timeout=60000)
+            # UCI input might have different labels or IDs depending on state
+            uci_selector = 'input[name="uci"], input#uci, input[aria-label*="UCI"], label:has-text("UCI")'
+            await page.wait_for_selector(uci_selector, timeout=60000)
+            
+            # Give it a tiny bit more time for any JS handlers to attach
+            await asyncio.sleep(5)
 
             logging.info("Entering credentials...")
-            # Use more specific selectors to avoid ambiguity
-            await page.get_by_label("Unique Client Identifier (UCI)").first.fill(UCI)
+            # Try to fill UCI by multiple possible selectors
+            try:
+                await page.locator('input[name="uci"], input#uci').first.fill(UCI)
+            except:
+                await page.get_by_label("Unique Client Identifier (UCI)").first.fill(UCI)
             
             # Application number is often required. Let's try to fill it if the field exists.
             app_num_field = page.locator('input[name="applicationNumber"], input#applicationNumber')
