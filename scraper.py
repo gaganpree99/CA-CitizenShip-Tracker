@@ -295,6 +295,8 @@ async def send_notification(message):
         logging.info(f"Notification (print-only): {message}")
 
 async def main():
+    VERSION = "2.0"
+    logging.info(f"--- IRCC Tracker {VERSION} starting ---")
     # Log environment variable presence (not values) for debugging
     logging.info(f"Environment check: UCI={bool(UCI)} ({len(UCI) if UCI else 0} chars), "
                  f"PASSWORD={bool(PASSWORD)} ({len(PASSWORD) if PASSWORD else 0} chars), "
