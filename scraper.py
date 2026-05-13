@@ -37,11 +37,16 @@ async def get_current_status():
             logging.info("Navigating to IRCC tracker login page...")
             await page.goto("https://tracker-suivi.apps.cic.gc.ca/en/login", wait_until="networkidle", timeout=60000)
 
+            # Debug: Capture state before entering credentials
+            await page.screenshot(path="before_login.png")
+            titles = await page.locator("h1, h2").all_inner_texts()
+            logging.info(f"Page titles: {titles}")
+
             # Wait for the app to bootstrap
             logging.info("Waiting for app to bootstrap...")
             # UCI input might have different labels or IDs depending on state
-            uci_selector = 'input[name="uci"], input#uci, input[aria-label*="UCI"], label:has-text("UCI")'
-            await page.wait_for_selector(uci_selector, timeout=60000)
+            uci_selector = 'input[name="uci"], input#uci'
+            await page.wait_for_selector(uci_selector, state="visible", timeout=60000)
             
             # Give it a tiny bit more time for any JS handlers to attach
             await asyncio.sleep(5)
