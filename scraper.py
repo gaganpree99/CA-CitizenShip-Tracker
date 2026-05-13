@@ -49,41 +49,53 @@ async def get_current_status():
             await page.wait_for_selector(uci_selector, state="visible", timeout=60000)
             
             logging.info("Entering credentials...")
-            # Use exact input selectors
-            await page.locator('input[name="uci"]').first.fill(UCI)
+            # Use type with delay to be more human-like and ensure validation triggers
+            await page.locator('input[name="uci"]').first.click()
+            await page.locator('input[name="uci"]').first.type(UCI, delay=100)
             
-            # Application number is often required. Let's try to fill it if the field exists.
+            # Application number is often required.
             app_num_selector = 'input[name="applicationNumber"]'
             if await page.locator(app_num_selector).count() > 0:
-                await page.locator(app_num_selector).fill(APP_NUMBER or "")
-                logging.info("Filled Application Number.")
-                logging.info("Filled Application Number.")
+                if APP_NUMBER:
+                    await page.locator(app_num_selector).click()
+                    await page.locator(app_num_selector).type(APP_NUMBER, delay=100)
+                    logging.info("Typed Application Number.")
+                else:
+                    logging.warning("Application Number field found but no APP_NUMBER provided in .env!")
 
-            # Password field was ambiguous, use explicit input selector
-            await page.locator('input[name="password"]').fill(PASSWORD)
+            # Password field
+            await page.locator('input[name="password"]').click()
+            await page.locator('input[name="password"]').type(PASSWORD, delay=100)
             
+            # Brief pause for validation
+            await asyncio.sleep(2)
+
             logging.info("Clicking Sign In...")
             sign_in_button = page.get_by_role("button", name="Sign in").first
             await sign_in_button.wait_for(state="visible", timeout=30000)
             await sign_in_button.click()
 
             # Wait for the dashboard to load or an error to appear
-            logging.info("Waiting for dashboard to load (this can take up to 60s)...")
+            logging.info("Waiting for dashboard to load (this can take up to 90s)...")
             
             try:
-                # 1. Wait for URL change
-                try:
-                    await page.wait_for_url("**/dashboard", timeout=15000)
-                    logging.info(f"URL changed to: {page.url}")
-                except:
-                    logging.warning(f"URL did not change to dashboard yet. Current URL: {page.url}")
-                    # Check for error messages on the login page
-                    error_text = await page.locator(".alert-danger, .error-message").all_inner_texts()
-                    if error_text:
-                        logging.error(f"Login page error detected: {error_text}")
-                    await page.screenshot(path="login_attempt_failed.png")
-                    # Continue waiting for dashboard just in case it's slow
-                    await page.wait_for_url("**/dashboard", timeout=45000)
+                # 1. Wait for URL change or error
+                for _ in range(18): # 90 seconds total (5s chunks)
+                    if "dashboard" in page.url:
+                        logging.info(f"URL changed to: {page.url}")
+                        break
+                    
+                    # Check for visible error messages
+                    errors = await page.locator(".alert-danger, .error-message, .invalid-feedback").all_inner_texts()
+                    if any(e.strip() for e in errors):
+                        logging.error(f"Login failed with error on page: {[e.strip() for e in errors if e.strip()]}")
+                        await page.screenshot(path="login_error_on_page.png")
+                        return None
+                        
+                    await asyncio.sleep(5)
+                
+                if "dashboard" not in page.url:
+                    raise Exception(f"Timed out waiting for dashboard. Current URL: {page.url}")
                 
                 # 2. Wait for a key element to appear in the DOM (even if not perfectly visible)
                 # We'll use a loop to check for several possible indicators
