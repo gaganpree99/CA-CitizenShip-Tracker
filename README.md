@@ -2,69 +2,68 @@
 
 A robust, automated tool to monitor your Canadian citizenship application progress. Never refresh the IRCC portal again—get notified the second your status changes.
 
-## ✨ Why use this?
+## ✨ Features
 
+- **Automated Hourly Checks:** Runs in the background on your Mac every hour.
+- **Firewall Proof:** Uses your local internet to bypass government-grade blocks (Data centers like GitHub are blocked by IRCC).
 - **Real-time Alerts:** Get a Telegram message the moment a section (like Background Check or Physical Presence) is updated.
-- **Hourly Monitoring:** Automatically checks your status 24 times a day using GitHub Actions.
-- **Historical Tracking:** Keeps a log of your "Recent Activity" and captures status updates as they happen.
-- **Clean Aesthetic:** Simple, easy-to-read notifications delivered straight to your phone.
-- **Secure:** Designed to run in a private repository using GitHub Secrets to protect your UCI and Password.
+- **Clean Aesthetic:** Professional, easy-to-read notifications delivered straight to your phone.
 
 ---
 
 ## 🚀 Step-by-Step Setup Guide
 
-### 1. Repository Setup
-1.  **Create a New Private Repository:** Go to [GitHub](https://github.com/new) and create a new **Private** repository.
-2.  **Upload the Code:** Upload `scraper.py`, `requirements.txt`, and the `.github/` folder to your new repository.
+### 1. Project Setup
+1.  **Clone/Download** this project to your Mac.
+2.  **Install Dependencies:**
+    ```bash
+    cd citizenship-tracker
+    python3 -m venv .venv
+    source .venv/bin/activate
+    pip install -r requirements.txt
+    playwright install firefox
+    ```
 
 ### 2. Configure Telegram Notifications
-Get alerts on your phone by creating a simple Telegram bot:
-1.  **Create the Bot:** Search for [@BotFather](https://t.me/botfather) on Telegram and send `/newbot`. Follow the steps to get your **API Token**.
-2.  **Get your Chat ID:** Search for [@userinfobot](https://t.me/userinfobot) and send it any message to get your unique **ID**.
+1.  **Create a Bot:** Search for [@BotFather](https://t.me/botfather) on Telegram and send `/newbot`. Save the **API Token**.
+2.  **Get your Chat ID:** Search for [@userinfobot](https://t.me/userinfobot) and send it a message to get your unique **ID**.
 3.  **Start the Bot:** Open a chat with your new bot and click **Start**.
 
-### 3. Add Your Credentials (GitHub Secrets)
-To keep your data safe, we use GitHub Secrets instead of hardcoding your password:
-1.  In your GitHub repository, go to **Settings > Secrets and variables > Actions**.
-2.  Add the following **Repository secrets**:
-    - `UCI`: Your 8 or 10-digit Unique Client Identifier.
-    - `PASSWORD`: Your IRCC Tracker password.
-    - `TELEGRAM_TOKEN`: The API Token from BotFather.
-    - `TELEGRAM_CHAT_ID`: The ID from userinfobot.
-
-### 4. Enable the Automation
-The tracker is set to run **every hour** automatically.
-- To check if it's working, go to the **Actions** tab in your repository.
-- You can manually trigger a run by selecting the "IRCC Status Check" workflow and clicking **Run workflow**.
+### 3. Configure Credentials
+Create a `.env` file in the project root:
+```env
+UCI=your_10_digit_uci
+PASSWORD=your_password
+TELEGRAM_TOKEN=your_bot_token
+TELEGRAM_CHAT_ID=your_chat_id
+```
 
 ---
 
-## 🛠 Local Development
-If you prefer to run the script on your own computer:
+## 🛠 How to Automate on macOS (Best Way)
 
-1.  **Install Python Dependencies:**
+Since IRCC blocks GitHub and other cloud servers, the best way to run this is directly on your Mac using a **LaunchAgent**. This will run the script every hour silently in the background.
+
+1.  **Open Terminal** and navigate to your project folder.
+2.  **Copy the automation file:**
     ```bash
-    pip install -r requirements.txt
-    playwright install chromium
+    cp com.gaganpreet.citizenshiptracker.plist ~/Library/LaunchAgents/
     ```
-2.  **Configure Environment:** Create a `.env` file in the project root:
-    ```env
-    UCI=your_uci
-    PASSWORD=your_password
-    TELEGRAM_TOKEN=your_bot_token
-    TELEGRAM_CHAT_ID=your_chat_id
+3.  **Load the timer:**
+    ```bash
+    launchctl load ~/Library/LaunchAgents/com.gaganpreet.citizenshiptracker.plist
     ```
-3.  **Run:** `python scraper.py`
+
+*To stop the automation later, use `launchctl unload` with the same path.*
 
 ---
 
-## 📝 Important Notes & Troubleshooting
-- **Maintenance Windows:** IRCC often performs maintenance on weekends (usually Saturday night/Sunday morning). The tracker may fail during these times; this is normal.
-- **Bot Permissions:** If you aren't receiving messages, make sure you have clicked **"Start"** in your chat with the bot.
-- **Security:** Always keep your repository **Private**. Your UCI and Password are sensitive information.
+## 📝 Troubleshooting
+- **Maintenance Windows:** IRCC portals usually go down for maintenance on Saturday nights. If the tracker fails then, it's normal.
+- **Sleep Mode:** The tracker runs whenever your Mac is awake. It will catch up on missed checks as soon as you wake your computer.
+- **Logs:** Check `tracker_local.log` in the project folder to see the history of runs.
 
 ---
 
 ## 🤝 Disclaimer
-This project is an independent tool and is not affiliated with Immigration, Refugees and Citizenship Canada (IRCC). Use responsibly and in accordance with government terms of service.
+This project is an independent tool and is not affiliated with IRCC. Use responsibly.
