@@ -49,29 +49,27 @@ async def get_current_status():
             await page.wait_for_selector(uci_selector, state="visible", timeout=60000)
             
             logging.info("Entering credentials...")
-            # Use type with delay to be more human-like and ensure validation triggers
-            await page.locator('input[name="uci"]').first.click()
-            await page.locator('input[name="uci"]').first.type(UCI, delay=100)
+            # Use fill but with small sleeps between to ensure SPA stability
+            await page.locator('input[name="uci"]').first.fill(UCI)
+            await asyncio.sleep(1)
             
             # Application number is often required.
             app_num_selector = 'input[name="applicationNumber"]'
             if await page.locator(app_num_selector).count() > 0:
                 if APP_NUMBER:
-                    await page.locator(app_num_selector).click()
-                    await page.locator(app_num_selector).type(APP_NUMBER, delay=100)
-                    logging.info("Typed Application Number.")
+                    await page.locator(app_num_selector).fill(APP_NUMBER)
+                    await asyncio.sleep(1)
+                    logging.info("Filled Application Number.")
                 else:
-                    logging.warning("Application Number field found but no APP_NUMBER provided in .env!")
+                    logging.warning("Application Number field found but no APP_NUMBER provided!")
 
             # Password field
-            await page.locator('input[name="password"]').click()
-            await page.locator('input[name="password"]').type(PASSWORD, delay=100)
-            
-            # Brief pause for validation
-            await asyncio.sleep(2)
+            await page.locator('input[name="password"]').first.fill(PASSWORD)
+            await asyncio.sleep(1)
 
             logging.info("Clicking Sign In...")
-            sign_in_button = page.get_by_role("button", name="Sign in").first
+            # Target the actual submit button specifically
+            sign_in_button = page.locator('button[type="submit"], .btn-primary, button:has-text("Sign in")').first
             await sign_in_button.wait_for(state="visible", timeout=30000)
             await sign_in_button.click()
 
@@ -297,8 +295,14 @@ async def send_notification(message):
         logging.info(f"Notification (print-only): {message}")
 
 async def main():
+    # Log environment variable presence (not values) for debugging
+    logging.info(f"Environment check: UCI={bool(UCI)} ({len(UCI) if UCI else 0} chars), "
+                 f"PASSWORD={bool(PASSWORD)} ({len(PASSWORD) if PASSWORD else 0} chars), "
+                 f"APP_NUMBER={bool(APP_NUMBER)}, "
+                 f"TG_TOKEN={bool(TELEGRAM_TOKEN)}, TG_CHAT={bool(TELEGRAM_CHAT_ID)}")
+
     if not UCI or not PASSWORD:
-        logging.error("UCI and PASSWORD must be set in .env file.")
+        logging.error("UCI and PASSWORD must be set in .env file or GitHub Secrets.")
         return
 
     new_status = await get_current_status()
