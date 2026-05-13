@@ -63,15 +63,27 @@ async def get_current_status():
             await page.locator('input[name="password"]').fill(PASSWORD)
             
             logging.info("Clicking Sign In...")
-            await page.get_by_role("button", name="Sign in").first.click()
+            sign_in_button = page.get_by_role("button", name="Sign in").first
+            await sign_in_button.wait_for(state="visible", timeout=30000)
+            await sign_in_button.click()
 
             # Wait for the dashboard to load or an error to appear
             logging.info("Waiting for dashboard to load (this can take up to 60s)...")
             
             try:
                 # 1. Wait for URL change
-                await page.wait_for_url("**/dashboard", timeout=30000)
-                logging.info(f"URL changed to: {page.url}")
+                try:
+                    await page.wait_for_url("**/dashboard", timeout=15000)
+                    logging.info(f"URL changed to: {page.url}")
+                except:
+                    logging.warning(f"URL did not change to dashboard yet. Current URL: {page.url}")
+                    # Check for error messages on the login page
+                    error_text = await page.locator(".alert-danger, .error-message").all_inner_texts()
+                    if error_text:
+                        logging.error(f"Login page error detected: {error_text}")
+                    await page.screenshot(path="login_attempt_failed.png")
+                    # Continue waiting for dashboard just in case it's slow
+                    await page.wait_for_url("**/dashboard", timeout=45000)
                 
                 # 2. Wait for a key element to appear in the DOM (even if not perfectly visible)
                 # We'll use a loop to check for several possible indicators
