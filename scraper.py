@@ -45,23 +45,18 @@ async def get_current_status():
             # Wait for the app to bootstrap
             logging.info("Waiting for app to bootstrap...")
             # UCI input might have different labels or IDs depending on state
-            uci_selector = 'input[name="uci"], input#uci'
+            uci_selector = 'input[name="uci"]'
             await page.wait_for_selector(uci_selector, state="visible", timeout=60000)
             
-            # Give it a tiny bit more time for any JS handlers to attach
-            await asyncio.sleep(5)
-
             logging.info("Entering credentials...")
-            # Try to fill UCI by multiple possible selectors
-            try:
-                await page.locator('input[name="uci"], input#uci').first.fill(UCI)
-            except:
-                await page.get_by_label("Unique Client Identifier (UCI)").first.fill(UCI)
+            # Use exact input selectors
+            await page.locator('input[name="uci"]').first.fill(UCI)
             
             # Application number is often required. Let's try to fill it if the field exists.
-            app_num_field = page.locator('input[name="applicationNumber"], input#applicationNumber')
-            if await app_num_field.count() > 0:
-                await app_num_field.fill(APP_NUMBER or "")
+            app_num_selector = 'input[name="applicationNumber"]'
+            if await page.locator(app_num_selector).count() > 0:
+                await page.locator(app_num_selector).fill(APP_NUMBER or "")
+                logging.info("Filled Application Number.")
                 logging.info("Filled Application Number.")
 
             # Password field was ambiguous, use explicit input selector
